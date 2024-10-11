@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 commands: Dict[str, Callable] = { }
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Send a message when the command /help is issued."""
+    """Sends this message when the command /help is issued."""
     global commands
 
     message = "The following commands are available:\n"
@@ -63,11 +63,20 @@ async def character(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     await update.message.reply_text(message)
 
+async def about(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    Provides basic information about the bot.
+    """
+    message: str = "Repository: https://github.com/Tomev/DDComp"
+    await update.message.reply_text(message)
 
-# This will be used to add handlers for respective commands. It's also 
+
+# This will be used to add handlers for respective commands. It's also used in the
+# help command to list available commands.
 commands = {
     "help": help_command,
-    "character": character
+    "character": character,
+    "about": about
 }
 
 
