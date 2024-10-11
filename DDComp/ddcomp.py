@@ -1,26 +1,18 @@
 #!/usr/bin/env python
 # pylint: disable=unused-argument
-# This program is dedicated to the public domain under the CC0 license.
-
 """
-Simple Bot to reply to Telegram messages.
-
-First, a few handler functions are defined. Then, those functions are passed to
-the Application and registered at their respective places.
-Then, the bot is started and runs until we press Ctrl-C on the command line.
-
-Usage:
-Basic Echobot example, repeats messages.
-Press Ctrl-C on the command line or send a signal to the process to stop the
-bot.
+DDComp -- A simple telegram bot for taking care of D&D utilities. Use /help to see the
+available commands.
 """
 
 import logging
 import random
 import os
 
-from telegram import ForceReply, Update
+from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
+
+from inspect import getdoc
 
 from typing import List, Callable, Dict
 
@@ -41,8 +33,9 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     global commands
 
     message = "The following commands are available:\n"
-    for command in commands:
-        message += f"/{command}\n"
+    for command in sorted(commands):
+        doc: str = getdoc(commands[command]).replace("\n", " ")
+        message += f"/{command} -- {doc}\n"
 
     await update.message.reply_text(message)
 
@@ -71,9 +64,7 @@ async def character(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(message)
 
 
-
-
-
+# This will be used to add handlers for respective commands. It's also 
 commands = {
     "help": help_command,
     "character": character
@@ -81,7 +72,6 @@ commands = {
 
 
 def main() -> None:
-    """Start the bot."""
     token: str = os.getenv("telegram_ddcomp_token")
 
     # Create the Application and pass it your bot's token.
