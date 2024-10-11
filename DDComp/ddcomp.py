@@ -6,15 +6,13 @@ available commands.
 """
 
 import logging
-import random
 import os
+import random
+from inspect import getdoc
+from typing import Callable, Dict, List
 
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
-
-from inspect import getdoc
-
-from typing import List, Callable, Dict
 
 # Enable logging
 logging.basicConfig(
@@ -26,7 +24,8 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 
-commands: Dict[str, Callable] = { }
+commands: Dict[str, Callable] = {}
+
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Sends this message when the command /help is issued."""
@@ -39,6 +38,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
     await update.message.reply_text(message)
 
+
 async def character(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
     This function handles the /character command. It rolls stats for a new character
@@ -49,19 +49,20 @@ async def character(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     stats: List[int] = []
 
     for i in range(n_stats):
-        message += f'Rolling stats {i + 1}:\n'
+        message += f"Rolling stats {i + 1}:\n"
         rolls = [random.randint(1, 6) for _ in range(4)]
         rolls.sort()
-        message += f'    Rolls: {rolls}\n'
+        message += f"    Rolls: {rolls}\n"
         rolls.pop(0)
-        message += f'    Best 3: {rolls}\n'
+        message += f"    Best 3: {rolls}\n"
         stats.append(sum(rolls))
-        message += f'    Stat total: {stats[-1]}\n\n'       
+        message += f"    Stat total: {stats[-1]}\n\n"
 
     stats.sort(reverse=True)
-    message += f'\nStats: {stats}'
+    message += f"\nStats: {stats}"
 
     await update.message.reply_text(message)
+
 
 async def about(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
@@ -73,11 +74,7 @@ async def about(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 # This will be used to add handlers for respective commands. It's also used in the
 # help command to list available commands.
-commands = {
-    "help": help_command,
-    "character": character,
-    "about": about
-}
+commands = {"help": help_command, "character": character, "about": about}
 
 
 def main() -> None:
