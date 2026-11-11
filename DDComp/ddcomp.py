@@ -5,14 +5,22 @@ DDComp -- A simple telegram bot for taking care of D&D utilities. Use /help to s
 available commands.
 """
 
+import json
 import logging
 import os
 import random
+import sys
 from inspect import getdoc
 from typing import Callable, Dict, List
 
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
+
+# Make the sibling module importable both when started as `python DDComp/ddcomp.py`
+# and when this file is imported from elsewhere (e.g. the tests).
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+import tableplop  # noqa: E402  pylint: disable=wrong-import-position
 
 # Enable logging
 logging.basicConfig(
@@ -72,9 +80,71 @@ async def about(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(message)
 
 
+TO_TABLEPLOP_USAGE: str = (
+    "Usage: /to_tableplop <url>\n"
+    "Example: /to_tableplop https://www.dndbeyond.com/characters/12345678"
+)
+TO_TABLEPLOP_CAPTION: str = (
+    "In Tableplop: Characters -> New Character -> Import, then pick this file.\n"
+    "Computed values (AC, HP, attack bonuses, spell slots) may differ from "
+    "D&D Beyond; please check them against your D&D Beyond sheet."
+)
+
+
+async def to_tableplop(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    Converts a public D&D Beyond character into a Tableplop character file. Usage:
+    /to_tableplop <D&D Beyond character URL>.
+    """
+    url: str = context.args[0] if context.args else ""
+    character_id = tableplop.parse_character_url(url)
+    if character_id is None:
+        await update.message.reply_text(TO_TABLEPLOP_USAGE)
+        return
+
+    try:
+        data = await tableplop.fetch_character(character_id)
+    except tableplop.CharacterPrivateError:
+        await update.message.reply_text(
+            "This character is private. Open the character's settings on D&D "
+            "Beyond, set Character Privacy to Public, and try again."
+        )
+        return
+    except tableplop.CharacterNotFoundError:
+        await update.message.reply_text(
+            "D&D Beyond has no character with this id. Please check the URL."
+        )
+        return
+    except tableplop.DDBError as error:
+        logger.warning("Fetching character %s failed: %s", character_id, error)
+        await update.message.reply_text(
+            "Could not reach D&D Beyond right now. Please try again later."
+        )
+        return
+
+    try:
+        sheet = tableplop.convert(data)
+    except Exception:  # pylint: disable=broad-exception-caught
+        logger.exception("Converting character %s failed", character_id)
+        await update.message.reply_text("Sorry, this character could not be converted.")
+        return
+
+    name: str = tableplop.character_name(data)
+    await update.message.reply_document(
+        document=json.dumps(sheet, ensure_ascii=False, indent=1).encode("utf-8"),
+        filename=tableplop.output_filename(name),
+        caption=TO_TABLEPLOP_CAPTION,
+    )
+
+
 # This will be used to add handlers for respective commands. It's also used in the
 # help command to list available commands.
-commands = {"help": help_command, "character": character, "about": about}
+commands = {
+    "help": help_command,
+    "character": character,
+    "about": about,
+    "to_tableplop": to_tableplop,
+}
 
 
 def main() -> None:
